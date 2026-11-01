@@ -5,7 +5,8 @@ import {
   APPLICATION_STATUSES,
   type Application,
   type ApplicationStatus,
-} from "../lib/definitions";
+} from "../../lib/definitions";
+import Link from "next/link";
 
 type ApplicationListProps = {
   applications: Application[];
@@ -69,9 +70,14 @@ export default function ApplicationList({
               key={application.id}
               className="space-y-2 rounded-lg border border-zinc-300 p-6 shadow-md dark:border-zinc-700"
             >
-              <h2 className="text-xl font-semibold">
-                {application.position}
-              </h2>
+            <h2 className="text-xl font-semibold">
+                <Link
+                    href={`/applications/${application.id}`}
+                    className="hover:underline"
+                    >
+                      {application.position}
+                </Link>
+            </h2>
 
               <p>{application.company}</p>
 

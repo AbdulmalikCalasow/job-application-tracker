@@ -1,4 +1,4 @@
-import ApplicationList from "../components/application-list";
+import ApplicationList from "../ui/components/application-list";
 import { getApplications } from "../lib/data";
 import Link from "next/link";
 

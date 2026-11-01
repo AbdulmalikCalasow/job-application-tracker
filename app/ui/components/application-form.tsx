@@ -5,9 +5,9 @@ import { useActionState } from "react";
 import {
   createApplication,
   type ApplicationFormState,
-} from "../lib/actions";
-import { APPLICATION_STATUSES } from "../lib/definitions";
-import { APPLICATION_LIMITS } from "../lib/validation";
+} from "../../lib/actions";
+import { APPLICATION_STATUSES } from "../../lib/definitions";
+import { APPLICATION_LIMITS } from "../../lib/validation";
 
 const initialState: ApplicationFormState = {};
 
