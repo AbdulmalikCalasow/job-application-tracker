@@ -1,5 +1,6 @@
 import ApplicationList from "../components/application-list";
 import { getApplications } from "../lib/data";
+import Link from "next/link";
 
 // Fetch applications on the server and pass them to the list.
 export default async function ApplicationsPage() {
@@ -13,7 +14,9 @@ export default async function ApplicationsPage() {
           Track your applications and their progress.
         </p>
       </header>
-
+        <Link href="/applications/new"
+        className="inline-block rounded-md bg-blue-700 px-4 py-2 font-medium text-white hover:bg-blue-800"
+        > Add application</Link>
       <ApplicationList applications={applications} />
     </main>
   );
