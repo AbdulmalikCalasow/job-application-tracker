@@ -150,3 +150,52 @@ export async function updateApplication(
   redirect(`/applications/${id}`);
 }
 
+// Define the message returned when deletion cannot be completed.
+export type DeleteApplicationState = {
+  message?: string;
+};
+
+// Delete an existing application after the user confirms in the interface.
+export async function deleteApplication(
+  id: string,
+  _previousState: DeleteApplicationState,
+  _formData: FormData
+): Promise<DeleteApplicationState> {
+  // Reject invalid IDs before querying the database.
+  if (!isValidObjectId(id)) {
+    return {
+      message: "Invalid application ID.",
+    };
+  }
+
+  try {
+    // Reuse the existing database connection.
+    await connectToDatabase();
+
+    // Remove the application matching this ID.
+    const application = await ApplicationModel.findByIdAndDelete(id);
+
+    // Explain when the application has already been removed.
+    if (!application) {
+      return {
+        message: "This application no longer exists.",
+      };
+    }
+  } catch (error) {
+    // Log the technical error on the server, not in the interface.
+    console.error("Failed to delete application:", error);
+
+    return {
+      message: "Unable to delete the application. Please try again.",
+    };
+  }
+
+  // Refresh the list and invalidate the deleted record's details.
+  revalidatePath("/applications");
+  revalidatePath(`/applications/${id}`);
+
+  // Return to the list after successful deletion.
+  // Keep redirect outside try/catch, just like the other actions.
+  redirect("/applications");
+}
+

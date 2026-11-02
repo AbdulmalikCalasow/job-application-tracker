@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getApplicationById } from "../../lib/data";
+import DeleteApplicationForm from "../../ui/components/delete-application-form";
 
 // Define the route parameter passed to this page.
 type ApplicationDetailsPageProps = {
@@ -64,6 +65,9 @@ export default async function ApplicationDetailsPage({
           </dd>
         </div>
       </dl>
+
+      {/* Require confirmation before deleting this application. */}
+      <DeleteApplicationForm applicationId={application.id} />
     </main>
   );
 }
