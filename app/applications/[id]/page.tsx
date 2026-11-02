@@ -37,6 +37,14 @@ export default async function ApplicationDetailsPage({
         </p>
       </header>
 
+      {/* Take the user to the edit page for this application. */}
+      <Link
+        href={`/applications/${application.id}/edit`}
+        className="inline-block rounded-md bg-blue-700 px-4 py-2 font-medium text-white hover:bg-blue-800"
+      >
+        Edit application
+      </Link>
+
       {/* Display the remaining application details. */}
       <dl className="space-y-4 rounded-lg border border-zinc-300 p-6 dark:border-zinc-700">
         <div>
