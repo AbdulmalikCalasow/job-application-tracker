@@ -1,27 +1,31 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   APPLICATION_STATUSES,
   type Application,
   type ApplicationStatus,
 } from "../../lib/definitions";
-import Link from "next/link";
 
 type ApplicationListProps = {
   applications: Application[];
+  initialStatus?: ApplicationStatus | "All";
 };
 
 export default function ApplicationList({
   applications,
+  initialStatus = "All",
 }: ApplicationListProps) {
+  // Start with the status selected from the dashboard.
   const [selectedStatus, setSelectedStatus] = useState<
     ApplicationStatus | "All"
-  >("All");
+  >(initialStatus);
 
   const filteredApplications = applications.filter(
     (application) =>
-      selectedStatus === "All" || application.status === selectedStatus
+      selectedStatus === "All" ||
+      application.status === selectedStatus
   );
 
   return (
@@ -51,8 +55,12 @@ export default function ApplicationList({
         </select>
       </div>
 
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Showing {filteredApplications.length} of {applications.length} applications
+      <p
+        aria-live="polite"
+        className="text-sm text-zinc-600 dark:text-zinc-400"
+      >
+        Showing {filteredApplications.length} of {applications.length}{" "}
+        applications
       </p>
 
       {applications.length === 0 ? (
@@ -70,14 +78,14 @@ export default function ApplicationList({
               key={application.id}
               className="space-y-2 rounded-lg border border-zinc-300 p-6 shadow-md dark:border-zinc-700"
             >
-            <h2 className="text-xl font-semibold">
+              <h2 className="text-xl font-semibold">
                 <Link
-                    href={`/applications/${application.id}`}
-                    className="hover:underline"
-                    >
-                      {application.position}
+                  href={`/applications/${application.id}`}
+                  className="hover:underline"
+                >
+                  {application.position}
                 </Link>
-            </h2>
+              </h2>
 
               <p>{application.company}</p>
 
