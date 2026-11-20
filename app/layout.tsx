@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
+import { auth } from "@/auth";
+import { logoutUser } from "@/app/lib/auth-actions";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,7 +20,12 @@ export const metadata: Metadata = {
   description: "Track and manage your job applications.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({
+  children,
+}: LayoutProps<"/">) {
+  const session = await auth();
+  const isLoggedIn = Boolean(session?.user?.id);
+
   return (
     <html
       lang="en"
@@ -40,20 +47,53 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               Job Application Tracker
             </Link>
 
-            <div className="flex items-center gap-5 text-sm font-medium">
-              <Link
-                href="/applications"
-                className="text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white"
-              >
-                Applications
-              </Link>
+            <div className="flex flex-wrap items-center gap-5 text-sm font-medium">
+              {isLoggedIn ? (
+                <>
+                  <Link
+                    href="/applications"
+                    className="text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white"
+                  >
+                    Applications
+                  </Link>
 
-              <Link
-                href="/applications/new"
-                className="rounded-md bg-blue-700 px-3 py-2 text-white hover:bg-blue-800"
-              >
-                + Add application
-              </Link>
+                  <Link
+                    href="/applications/new"
+                    className="rounded-md bg-blue-700 px-3 py-2 text-white hover:bg-blue-800"
+                  >
+                    + Add application
+                  </Link>
+
+                  <span className="max-w-40 truncate text-zinc-600 dark:text-zinc-400">
+                    {session?.user?.name ?? "My account"}
+                  </span>
+
+                  <form action={logoutUser}>
+                    <button
+                      type="submit"
+                      className="rounded-md border border-zinc-300 px-3 py-2 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                    >
+                      Log out
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white"
+                  >
+                    Log in
+                  </Link>
+
+                  <Link
+                    href="/register"
+                    className="rounded-md bg-blue-700 px-3 py-2 text-white hover:bg-blue-800"
+                  >
+                    Register
+                  </Link>
+                </>
+              )}
             </div>
           </nav>
         </header>
