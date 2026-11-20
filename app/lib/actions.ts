@@ -11,39 +11,52 @@ import {
   type ApplicationFormValues,
 } from "./validation";
 import { isValidObjectId } from "./utils";
+import { requireUserId } from "./auth";
 
-// Define the information returned when submission fails.
 export type ApplicationFormState = {
   errors?: ApplicationFieldErrors;
   message?: string;
   values?: ApplicationFormValues;
 };
 
-// Validate and save a new application.
-export async function createApplication(
-  _previousState: ApplicationFormState,
-  formData: FormData
-): Promise<ApplicationFormState> {
-  // Accept text fields only.
+function getFormValues(formData: FormData): ApplicationFormValues {
   const getText = (name: string): string => {
     const value = formData.get(name);
     return typeof value === "string" ? value : "";
   };
 
-  const values: ApplicationFormValues = {
+  return {
     company: getText("company"),
     position: getText("position"),
     status: getText("status"),
     dateApplied: getText("dateApplied"),
     notes: getText("notes"),
   };
+}
 
-  const result = validateApplication(values);
+function refreshApplicationPages(id?: string): void {
+  revalidatePath("/");
+  revalidatePath("/applications");
+
+  if (id) {
+    revalidatePath(`/applications/${id}`);
+    revalidatePath(`/applications/${id}/edit`);
+  }
+}
+
+export async function createApplication(
+  previousState: ApplicationFormState,
+  formData: FormData
+): Promise<ApplicationFormState> {
+  void previousState;
+
+  const userId = await requireUserId();
+  const result = validateApplication(getFormValues(formData));
 
   if (!result.success) {
     return {
       errors: result.errors,
-      message: "Please correct the highlighted fields.",
+      message: "Check the highlighted fields.",
       values: result.data,
     };
   }
@@ -52,6 +65,7 @@ export async function createApplication(
     await connectToDatabase();
 
     await ApplicationModel.create({
+      userId,
       company: result.data.company,
       position: result.data.position,
       status: result.data.status as ApplicationStatus,
@@ -64,49 +78,36 @@ export async function createApplication(
     console.error("Failed to create application:", error);
 
     return {
-      message: "Unable to save the application. Please try again.",
+      message: "Couldn't save. Please try again.",
       values: result.data,
     };
   }
 
-  revalidatePath("/applications");
+  refreshApplicationPages();
   redirect("/applications");
 }
 
-// Validate and update an existing application.
 export async function updateApplication(
   id: string,
-  _previousState: ApplicationFormState,
+  previousState: ApplicationFormState,
   formData: FormData
 ): Promise<ApplicationFormState> {
-  // Reject an invalid ID before querying the database.
+  void previousState;
+
+  const userId = await requireUserId();
+
   if (!isValidObjectId(id)) {
     return {
-      message: "Invalid application ID.",
+      message: "Application not found.",
     };
   }
 
-  // Accept text fields only.
-  const getText = (name: string): string => {
-    const value = formData.get(name);
-    return typeof value === "string" ? value : "";
-  };
+  const result = validateApplication(getFormValues(formData));
 
-  const values: ApplicationFormValues = {
-    company: getText("company"),
-    position: getText("position"),
-    status: getText("status"),
-    dateApplied: getText("dateApplied"),
-    notes: getText("notes"),
-  };
-
-  const result = validateApplication(values);
-
-  // Return field errors without changing the database.
   if (!result.success) {
     return {
       errors: result.errors,
-      message: "Please correct the highlighted fields.",
+      message: "Check the highlighted fields.",
       values: result.data,
     };
   }
@@ -114,24 +115,25 @@ export async function updateApplication(
   try {
     await connectToDatabase();
 
-    // Update only the editable fields and run schema validation.
-    const application = await ApplicationModel.findByIdAndUpdate(
-      id,
+    const application = await ApplicationModel.findOneAndUpdate(
+      { _id: id, userId },
       {
-        company: result.data.company,
-        position: result.data.position,
-        status: result.data.status as ApplicationStatus,
-        dateApplied: new Date(
-          `${result.data.dateApplied}T00:00:00.000Z`
-        ),
-        notes: result.data.notes,
+        $set: {
+          company: result.data.company,
+          position: result.data.position,
+          status: result.data.status as ApplicationStatus,
+          dateApplied: new Date(
+            `${result.data.dateApplied}T00:00:00.000Z`
+          ),
+          notes: result.data.notes,
+        },
       },
       { runValidators: true }
     );
 
     if (!application) {
       return {
-        message: "This application no longer exists.",
+        message: "Application not found.",
         values: result.data,
       };
     }
@@ -139,63 +141,56 @@ export async function updateApplication(
     console.error("Failed to update application:", error);
 
     return {
-      message: "Unable to update the application. Please try again.",
+      message: "Couldn't save changes. Please try again.",
       values: result.data,
     };
   }
 
-  // Refresh the list and details before returning to the record.
-  revalidatePath("/applications");
-  revalidatePath(`/applications/${id}`);
+  refreshApplicationPages(id);
   redirect(`/applications/${id}`);
 }
 
-// Define the message returned when deletion cannot be completed.
 export type DeleteApplicationState = {
   message?: string;
 };
 
-// Delete an existing application after the user confirms in the interface.
 export async function deleteApplication(
   id: string,
-  _previousState: DeleteApplicationState,
-  _formData: FormData
+  previousState: DeleteApplicationState,
+  formData: FormData
 ): Promise<DeleteApplicationState> {
-  // Reject invalid IDs before querying the database.
+  void previousState;
+  void formData;
+
+  const userId = await requireUserId();
+
   if (!isValidObjectId(id)) {
     return {
-      message: "Invalid application ID.",
+      message: "Application not found.",
     };
   }
 
   try {
-    // Reuse the existing database connection.
     await connectToDatabase();
 
-    // Remove the application matching this ID.
-    const application = await ApplicationModel.findByIdAndDelete(id);
+    const application = await ApplicationModel.findOneAndDelete({
+      _id: id,
+      userId,
+    });
 
-    // Explain when the application has already been removed.
     if (!application) {
       return {
-        message: "This application no longer exists.",
+        message: "Application not found.",
       };
     }
   } catch (error) {
-    // Log the technical error on the server, not in the interface.
     console.error("Failed to delete application:", error);
 
     return {
-      message: "Unable to delete the application. Please try again.",
+      message: "Couldn't delete. Please try again.",
     };
   }
 
-  // Refresh the list and invalidate the deleted record's details.
-  revalidatePath("/applications");
-  revalidatePath(`/applications/${id}`);
-
-  // Return to the list after successful deletion.
-  // Keep redirect outside try/catch, just like the other actions.
+  refreshApplicationPages(id);
   redirect("/applications");
 }
-

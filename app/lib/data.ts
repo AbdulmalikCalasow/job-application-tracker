@@ -2,16 +2,18 @@ import { connectToDatabase } from "./db";
 import type { Application } from "./definitions";
 import ApplicationModel from "./models";
 import { isValidObjectId } from "./utils";
+import { requireUserId } from "./auth";
 
-// Get all applications, newest first.
+// Get the signed-in user's applications.
 export async function getApplications(): Promise<Application[]> {
+  const userId = await requireUserId();
+
   await connectToDatabase();
 
-  const applications = await ApplicationModel.find({})
+  const applications = await ApplicationModel.find({ userId })
     .sort({ createdAt: -1, _id: -1 })
     .lean();
 
-  // Convert database values for pages and components.
   return applications.map((application) => ({
     id: application._id.toString(),
     company: application.company,
@@ -22,24 +24,27 @@ export async function getApplications(): Promise<Application[]> {
   }));
 }
 
-// Get one application by its database ID.
+// Get one application belonging to the signed-in user.
 export async function getApplicationById(
   id: string
 ): Promise<Application | null> {
-  // Check the ID before connecting to the database.
+  const userId = await requireUserId();
+
   if (!isValidObjectId(id)) {
     return null;
   }
 
   await connectToDatabase();
 
-  const application = await ApplicationModel.findById(id).lean();
+  const application = await ApplicationModel.findOne({
+    _id: id,
+    userId,
+  }).lean();
 
   if (!application) {
     return null;
   }
 
-  // Convert database values for pages and components.
   return {
     id: application._id.toString(),
     company: application.company,

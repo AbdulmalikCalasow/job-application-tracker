@@ -9,6 +9,10 @@ import UserModel from "./user-model";
 export type AuthFormState = {
   message?: string;
   success?: boolean;
+  values?: {
+    name?: string;
+    email: string;
+  };
 };
 
 function getText(formData: FormData, field: string): string {
@@ -27,15 +31,19 @@ export async function registerUser(
   const password = getText(formData, "password");
   const confirmPassword = getText(formData, "confirmPassword");
 
+  const values = { name, email };
+
   if (!name) {
     return {
       message: "Enter your name.",
+      values,
     };
   }
 
   if (name.length > 100) {
     return {
-      message: "Keep your name under 101 characters.",
+      message: "Use 100 characters or fewer for your name.",
+      values,
     };
   }
 
@@ -45,31 +53,33 @@ export async function registerUser(
   ) {
     return {
       message: "Enter a valid email address.",
+      values,
     };
   }
 
   if (password.length < 12) {
     return {
       message: "Use at least 12 characters.",
+      values,
     };
   }
 
   if (Buffer.byteLength(password, "utf8") > 72) {
     return {
       message: "Password is too long. Try a shorter one.",
+      values,
     };
   }
 
   if (password !== confirmPassword) {
     return {
       message: "Passwords don't match.",
+      values,
     };
   }
 
   try {
     await connectToDatabase();
-
-    // Ensure the unique email index exists before registration.
     await UserModel.init();
 
     const passwordHash = await bcrypt.hash(password, 12);
@@ -86,13 +96,18 @@ export async function registerUser(
       "code" in error &&
       error.code === 11000;
 
-    if (!isDuplicateEmail) {
-      console.error("Registration failed.");
+    if (isDuplicateEmail) {
+      return {
+        message: "Email already registered. Log in or use another email.",
+        values,
+      };
     }
 
+    console.error("Registration failed.");
+
     return {
-      message:
-        "Couldn't create your account. Try again or log in.",
+      message: "Couldn't create your account. Please try again.",
+      values,
     };
   }
 
@@ -111,6 +126,8 @@ export async function loginUser(
   const email = getText(formData, "email").trim().toLowerCase();
   const password = getText(formData, "password");
 
+  const values = { email };
+
   if (
     !email ||
     email.length > 254 ||
@@ -119,6 +136,7 @@ export async function loginUser(
   ) {
     return {
       message: "Incorrect email or password.",
+      values,
     };
   }
 
@@ -133,6 +151,7 @@ export async function loginUser(
       if (error.type === "CredentialsSignin") {
         return {
           message: "Incorrect email or password.",
+          values,
         };
       }
 
@@ -140,10 +159,11 @@ export async function loginUser(
 
       return {
         message: "Couldn't log in. Please try again.",
+        values,
       };
     }
 
-    // Preserve the redirect signal after successful login.
+    // Let Next.js complete the successful login redirect.
     throw error;
   }
 

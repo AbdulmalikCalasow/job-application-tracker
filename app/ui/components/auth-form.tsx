@@ -54,6 +54,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
             name="name"
             type="text"
             autoComplete="name"
+            defaultValue={state.values?.name ?? ""}
             required
             maxLength={100}
             className={inputClassName}
@@ -71,6 +72,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
           name="email"
           type="email"
           autoComplete="email"
+          defaultValue={state.values?.email ?? ""}
           required
           maxLength={254}
           className={inputClassName}

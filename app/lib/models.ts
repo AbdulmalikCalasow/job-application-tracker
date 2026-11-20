@@ -1,4 +1,4 @@
-import mongoose, { Schema, type Model } from "mongoose";
+import mongoose, { Schema, type Model, type Types } from "mongoose";
 import {
   APPLICATION_STATUSES,
   type ApplicationStatus,
@@ -7,6 +7,7 @@ import { APPLICATION_LIMITS, getTodayDate } from "./validation";
 
 // Define the database fields.
 interface ApplicationRecord {
+  userId: Types.ObjectId;
   company: string;
   position: string;
   status: ApplicationStatus;
@@ -19,6 +20,11 @@ interface ApplicationRecord {
 // Define the application schema.
 const applicationSchema = new Schema<ApplicationRecord>(
   {
+     userId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      index: true,
+    },
     company: {
       type: String,
       trim: true,
